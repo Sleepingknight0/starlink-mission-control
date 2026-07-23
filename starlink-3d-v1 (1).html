@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>STARLINK · MISSION BRIEF — SpaceX 3D Explainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#000000;
+    --panel:rgba(0,0,0,.88);
+    --panel-edge:rgba(255,255,255,.09);
+    --line:rgba(255,255,255,.1);
+    --text:#FFFFFF;
+    --muted:#8B919A;
+    --dim:#5C6370;
+    --cyan:#00AEEF;
+    --cyan-hot:#4DD4FF;
+    --amber:#F5A623;
+    --laser:#00E676;
+    --geo:#FF3B3B;
+    --go:#00C853;
+    --warn:#FFB300;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+    font-family:'Inter','IBM Plex Sans Thai','Noto Sans Thai',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;font-feature-settings:"kern" 1,"tnum" 1;}
+  #scene{position:fixed;inset:0;display:block;touch-action:none;cursor:grab;z-index:3}
+  #scene.dragging{cursor:grabbing}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+
+  /* ── SpaceX cinematic overlays ── */
+  #vignette{position:fixed;inset:0;z-index:4;pointer-events:none;
+    background:radial-gradient(ellipse 75% 70% at 50% 45%,transparent 40%,rgba(0,0,0,.55) 100%)}
+  #scanlines{position:fixed;inset:0;z-index:4;pointer-events:none;opacity:.04;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.06) 2px,rgba(255,255,255,.06) 3px)}
+  #cornerTL,#cornerTR,#cornerBL,#cornerBR{position:fixed;z-index:6;width:28px;height:28px;pointer-events:none;opacity:.45}
+  #cornerTL{top:58px;left:14px;border-top:1px solid #fff;border-left:1px solid #fff}
+  #cornerTR{top:58px;right:14px;border-top:1px solid #fff;border-right:1px solid #fff}
+  #cornerBL{bottom:14px;left:14px;border-bottom:1px solid #fff;border-left:1px solid #fff}
+  #cornerBR{bottom:14px;right:14px;border-bottom:1px solid #fff;border-right:1px solid #fff}
+
+  /* ── Top Navigation — SpaceX website style ── */
+  #topNav{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+    padding:0 28px;height:52px;background:rgba(0,0,0,.72);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid rgba(255,255,255,.06)}
+  #topNav .logo{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.28em;font-size:13px;color:#fff;
+    display:flex;align-items:center;gap:10px}
+  #topNav .logo .x-mark{width:18px;height:18px;position:relative;flex-shrink:0}
+  #topNav .logo .x-mark::before,#topNav .logo .x-mark::after{content:'';position:absolute;left:50%;top:50%;width:16px;height:1.5px;background:#fff}
+  #topNav .logo .x-mark::before{transform:translate(-50%,-50%) rotate(45deg)}
+  #topNav .logo .x-mark::after{transform:translate(-50%,-50%) rotate(-45deg)}
+  #topNav .nav-links{display:flex;gap:28px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+  #topNav .nav-links a{color:var(--muted);text-decoration:none;transition:color .2s;position:relative}
+  #topNav .nav-links a:hover,#topNav .nav-links a.active{color:#fff}
+  #topNav .nav-links a.active::after{content:'';position:absolute;left:0;right:0;bottom:-18px;height:2px;background:#fff}
+  #topNav .nav-right{display:flex;align-items:center;gap:16px}
+  #liveBadge{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:10px;
+    letter-spacing:.18em;color:#fff;padding:5px 10px;border:1px solid rgba(0,200,83,.45);border-radius:2px;
+    background:rgba(0,200,83,.08)}
+  #liveBadge .dot-live{width:6px;height:6px;border-radius:50%;background:var(--go);
+    box-shadow:0 0 8px var(--go);animation:livePulse 1.4s ease-in-out infinite}
+  @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.85)}}
+  #utcClock{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;color:var(--muted)}
+
+  /* ── Brand HUD ── */
+  #brand{position:fixed;top:68px;left:28px;z-index:5;pointer-events:none;max-width:min(420px,70vw)}
+  #brand .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.36em;
+    color:var(--cyan);text-transform:uppercase;opacity:.85;display:flex;align-items:center;gap:8px}
+  #brand .eyebrow::before{content:'';width:18px;height:1px;background:var(--cyan);opacity:.7}
+  #brand h1{font-family:'Space Grotesk','Inter','IBM Plex Sans Thai',sans-serif;
+    font-size:clamp(24px,5vw,36px);font-weight:700;letter-spacing:-.03em;line-height:1.05;margin-top:8px;
+    text-shadow:0 4px 32px rgba(0,0,0,.95)}
+  #brand .sub{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45;letter-spacing:.01em}
+  #brand .mission-id{margin-top:10px;display:inline-flex;align-items:center;gap:8px;
+    font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--dim);
+    border:1px solid rgba(255,255,255,.08);padding:4px 10px;border-radius:2px;background:rgba(0,0,0,.4)}
+  #brand .mission-id b{color:var(--cyan);font-weight:600}
+
+  /* ── Telemetry stack (right) ── */
+  #telemetry{position:fixed;top:64px;right:16px;z-index:5;display:flex;flex-direction:column;gap:5px;align-items:stretch;width:168px}
+  .chip{display:flex;flex-direction:column;gap:2px;background:rgba(0,0,0,.72);border:1px solid var(--panel-edge);
+    border-radius:2px;padding:8px 11px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    position:relative;overflow:hidden}
+  .chip::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--cyan);opacity:.55}
+  .chip .k{font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace}
+  .chip .v{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);letter-spacing:.02em}
+  .chip .v.c{color:var(--cyan-hot)}
+  .chip .v.g{color:var(--laser)}
+  .chip .v.a{color:var(--amber)}
+  .chip .meter{margin-top:4px;height:2px;background:rgba(255,255,255,.08);border-radius:1px;overflow:hidden}
+  .chip .meter > i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--cyan-hot));
+    width:72%;box-shadow:0 0 8px rgba(0,174,239,.5);transition:width .4s ease}
+  @media (max-width:640px){ .chip.optional{display:none} #telemetry{width:130px} }
+
+  /* ── Status rail (left mid) ── */
+  #statusRail{position:fixed;top:50%;left:16px;transform:translateY(-50%);z-index:5;
+    display:flex;flex-direction:column;gap:10px;pointer-events:none}
+  .status-item{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;
+    font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .status-item .led{width:6px;height:6px;border-radius:50%;background:var(--dim);flex-shrink:0}
+  .status-item .led.on{background:var(--go);box-shadow:0 0 8px var(--go)}
+  .status-item .led.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+  .status-item .led.cyan{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+  @media (max-width:720px){ #statusRail{display:none} }
+
+  /* ── HANDOVER flash ── */
+  #hoFlash{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-8px);z-index:6;
+    background:rgba(0,0,0,.9);border:1px solid var(--cyan);color:var(--cyan-hot);
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    padding:8px 18px;border-radius:2px;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;
+    box-shadow:0 0 32px rgba(0,174,239,.3),inset 0 0 20px rgba(0,174,239,.05)}
+  #hoFlash.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ── Control hint ── */
+  #hint{position:fixed;top:68px;left:50%;transform:translateX(-50%);z-index:5;font-size:11px;color:var(--muted);
+    background:rgba(0,0,0,.75);border:1px solid var(--panel-edge);border-radius:2px;padding:7px 14px;
+    backdrop-filter:blur(10px);transition:opacity 1s;pointer-events:none;
+    font-family:'IBM Plex Mono',monospace;letter-spacing:.06em;white-space:nowrap}
+  #hint.gone{opacity:0}
+
+  /* ── Step panel ── */
+  #panel{position:fixed;left:20px;right:20px;bottom:20px;z-index:10;margin:0 auto;max-width:700px;
+    background:var(--panel);border:1px solid var(--panel-edge);border-radius:4px;
+    backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+    box-shadow:0 30px 90px rgba(0,0,0,.75);overflow:hidden;
+    transition:transform .35s cubic-bezier(.2,.9,.2,1)}
+  #panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent)}
+  #panel::after{content:'';position:absolute;top:0;left:0;width:3px;height:100%;
+    background:linear-gradient(180deg,var(--cyan),transparent 60%);opacity:.7}
+  #panel.collapsed #stepBody, #panel.collapsed #panelFoot{display:none}
+  #panelHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px 0 20px;cursor:pointer}
+  #stepEyebrow{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.28em;color:var(--cyan);text-transform:uppercase;opacity:.9}
+  #collapseBtn{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:3px 6px;line-height:1;
+    transition:transform .25s;opacity:0.7}
+  #collapseBtn:hover{opacity:1}
+  #panel.collapsed #collapseBtn{transform:rotate(180deg)}
+  #stepTitle{font-family:'Space Grotesk','Inter','IBM Plex Sans Thai',sans-serif;font-size:21px;font-weight:700;line-height:1.15;
+    padding:6px 22px 0 22px;letter-spacing:-.02em}
+  #stepBody{padding:8px 20px 6px 20px;font-size:13.5px;line-height:1.65;color:#B8C0CC;
+    max-height:30vh;overflow-y:auto;overscroll-behavior:contain}
+  #stepBody::-webkit-scrollbar{width:3px}
+  #stepBody::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:2px}
+  #stepBody b{color:var(--text)}
+  #stepBody .c{color:var(--cyan-hot)} #stepBody .a{color:var(--amber)}
+  #stepBody .g{color:var(--laser)} #stepBody .r{color:var(--geo)}
+  #stepBody p+p{margin-top:8px}
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:10px 0 4px}
+  .kv>div{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:2px;padding:8px 11px;
+    position:relative}
+  .kv>div::before{content:'';position:absolute;top:0;left:0;width:100%;height:1px;
+    background:linear-gradient(90deg,var(--cyan),transparent);opacity:.25}
+  .kv .k{display:block;font-size:10px;color:var(--dim);letter-spacing:.06em;font-family:'IBM Plex Mono',monospace;text-transform:uppercase}
+  .kv .v{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:var(--text);margin-top:2px}
+  .note{margin-top:9px;font-size:12px;color:var(--muted);border-left:2px solid rgba(0,174,239,.4);padding-left:10px}
+  .live{font-family:'IBM Plex Mono',monospace;font-size:12px;background:rgba(0,174,239,.06);
+    border:1px solid rgba(0,174,239,.2);border-radius:2px;padding:9px 12px;margin-top:9px;color:#C8E8F5}
+  .bars{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+  .bar .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:3px}
+  .bar .lbl b{font-family:'IBM Plex Mono',monospace;color:var(--text);font-weight:600}
+  .bar .track{height:4px;background:rgba(255,255,255,.06);border-radius:1px;overflow:hidden}
+  .bar .fill{height:100%;border-radius:1px}
+
+  #panelFoot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 14px;
+    border-top:1px solid rgba(255,255,255,.05);margin-top:4px}
+  .navBtn{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    border-radius:2px;padding:9px 16px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--text);
+    transition:all .15s}
+  .navBtn:hover{border-color:#fff;color:#fff}
+  .navBtn.primary{background:#fff;border-color:#fff;color:#000}
+  .navBtn.primary:hover{background:var(--cyan);border-color:var(--cyan);color:#000;box-shadow:0 0 20px rgba(0,174,239,.35)}
+  .navBtn:disabled{opacity:.3;cursor:default}
+  #dots{display:flex;gap:5px;flex:1;justify-content:center}
+  .dot{width:6px;height:6px;border-radius:1px;background:rgba(255,255,255,.18);border:none;cursor:pointer;padding:0;
+    transition:all .25s;transform:rotate(45deg)}
+  .dot.on{width:18px;background:var(--cyan);box-shadow:0 0 10px rgba(0,174,239,.55);border-radius:1px;transform:none}
+  @media (max-width:480px){
+    #stepTitle{font-size:17px}
+    #stepBody{font-size:13px;max-height:28vh}
+    #topNav .nav-links{display:none}
+    #brand{left:16px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #panel,.dot,.navBtn,#liveBadge .dot-live{transition:none;animation:none}
+  }
+
+  /* ── Mission Control Bar ── */
+  #missionBar{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);z-index:12;
+    display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.85);border:1px solid var(--panel-edge);
+    border-radius:2px;padding:5px 10px 5px 6px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    box-shadow:0 12px 50px rgba(0,0,0,.6)}
+  #missionBar .mc-left{display:flex;align-items:center;gap:8px}
+  #missionBar .mc-right{display:flex;align-items:center;gap:3px;margin-left:6px;padding-left:10px;border-left:1px solid rgba(255,255,255,.1)}
+  .mc-btn{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    background:transparent;border:1px solid rgba(255,255,255,.12);color:var(--muted);border-radius:2px;
+    padding:6px 10px;cursor:pointer;transition:all .12s}
+  .mc-btn:hover{border-color:#fff;color:#fff}
+  .mc-btn:active{background:rgba(255,255,255,.06);transform:scale(0.97)}
+  .mc-btn.active-view{border-color:var(--cyan);color:var(--cyan);background:rgba(0,174,239,.08)}
+  #pauseBtn{width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+  #pauseBtn.paused{background:rgba(0,174,239,.15);border-color:var(--cyan);color:var(--cyan)}
+  .mc-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.16em;color:var(--dim);margin-right:2px}
+  #speedSlider{width:88px;accent-color:var(--cyan);cursor:pointer;height:3px}
+  .mc-val{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--cyan);min-width:42px;text-align:right}
+  #tPlus{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.06em;
+    padding:0 6px;border-right:1px solid rgba(255,255,255,.1);margin-right:4px;min-width:72px}
+  #tPlus b{color:var(--cyan-hot);font-weight:600}
+  @media (max-width:560px){
+    #missionBar{gap:4px;padding:4px 8px;bottom:auto;top:58px;right:8px;left:auto;transform:none;flex-wrap:wrap;max-width:calc(100vw - 150px)}
+    .mc-right{display:none} #tPlus{display:none}
+  }
+
+  /* ── Progress track under nav ── */
+  #missionProgress{position:fixed;top:52px;left:0;right:0;height:2px;z-index:19;background:rgba(255,255,255,.04)}
+  #missionProgress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),#fff);
+    box-shadow:0 0 12px rgba(0,174,239,.6);transition:width .4s cubic-bezier(.2,.9,.2,1)}
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<div id="vignette"></div>
+<div id="scanlines"></div>
+<div id="cornerTL"></div><div id="cornerTR"></div>
+<div id="cornerBL"></div><div id="cornerBR"></div>
+<div id="missionProgress"><i id="progressFill"></i></div>
+
+<nav id="topNav">
+  <div class="logo"><span class="x-mark" aria-hidden="true"></span>SPACEX</div>
+  <div class="nav-links">
+    <a href="#" class="active">STARLINK</a>
+    <a href="#panel">MISSION</a>
+    <a href="#">FALCON</a>
+    <a href="#">STARSHIP</a>
+  </div>
+  <div class="nav-right">
+    <div id="utcClock" class="mono">00:00:00 UTC</div>
+    <div id="liveBadge"><span class="dot-live"></span>LIVE</div>
+  </div>
+</nav>
+
+<div id="brand">
+  <div class="eyebrow">MISSION BRIEF · CONSTELLATION OPS</div>
+  <h1>Starlink ทำงานยังไง?</h1>
+  <div class="sub">พาชมเส้นทางข้อมูลจากจานหน้าบ้าน ขึ้นอวกาศ แล้วกลับมา — แบบ 3D · SpaceX Mission Control</div>
+  <div class="mission-id">SL-OPS · <b id="missionStepLabel">STEP 01</b> · T+ <b id="tPlusBrand">00:00</b></div>
+</div>
+
+<div id="statusRail">
+  <div class="status-item"><span class="led on" id="ledConst"></span> CONSTELLATION</div>
+  <div class="status-item"><span class="led cyan" id="ledLink"></span> USER LINK</div>
+  <div class="status-item"><span class="led on" id="ledGw"></span> GATEWAY</div>
+  <div class="status-item"><span class="led" id="ledLaser"></span> LASER MESH</div>
+  <div class="status-item"><span class="led on" id="ledHandover"></span> HANDOVER</div>
+</div>
+
+<div id="telemetry">
+  <div class="chip">
+    <span class="k">Latency</span>
+    <span class="v c" id="pingV">— ms</span>
+    <div class="meter"><i id="pingMeter"></i></div>
+  </div>
+  <div class="chip">
+    <span class="k">On orbit</span>
+    <span class="v" id="satCountV">10,700+</span>
+  </div>
+  <div class="chip optional">
+    <span class="k">Altitude</span>
+    <span class="v c">~550 km</span>
+  </div>
+  <div class="chip optional">
+    <span class="k">Velocity</span>
+    <span class="v a" id="velV">7.66 km/s</span>
+  </div>
+  <div class="chip optional">
+    <span class="k">Signal</span>
+    <span class="v g" id="sigV">— dB</span>
+    <div class="meter"><i id="sigMeter" style="width:68%;background:linear-gradient(90deg,#00E676,#69F0AE)"></i></div>
+  </div>
+  <div class="chip optional">
+    <span class="k">Sim rate</span>
+    <span class="v c" id="simRateV">60×</span>
+  </div>
+</div>
+
+<div id="missionBar">
+  <div class="mc-left">
+    <button id="pauseBtn" class="mc-btn" aria-label="Pause/Resume">⏸</button>
+    <span id="tPlus">T+ <b id="tPlusVal">00:00</b></span>
+    <span class="mc-label">SPEED</span>
+    <input type="range" id="speedSlider" min="0.5" max="120" step="0.5" value="60">
+    <span id="speedVal" class="mc-val mono">60×</span>
+  </div>
+  <div class="mc-right">
+    <button class="mc-btn viewBtn" data-view="dish">DISH</button>
+    <button class="mc-btn viewBtn" data-view="gw">GATEWAY</button>
+    <button class="mc-btn viewBtn" data-view="ship">SHIP</button>
+    <button class="mc-btn viewBtn" data-view="orbit">ORBIT</button>
+    <button class="mc-btn viewBtn" data-view="reset">RESET</button>
+    <button id="fsBtn" class="mc-btn" title="Fullscreen">⛶</button>
+  </div>
+</div>
+
+<div id="hoFlash">⇄ HANDOVER — สลับไปดาวเทียมดวงถัดไปแล้ว</div>
+<div id="hint">DRAG TO ORBIT · SCROLL TO ZOOM · ← → STEPS</div>
+
+<div id="panel">
+  <div id="panelHead">
+    <div id="stepEyebrow">ขั้นที่ 1 / 9</div>
+    <button id="collapseBtn" aria-label="ย่อ/ขยายแผง">▾</button>
+  </div>
+  <div id="stepTitle"></div>
+  <div id="stepBody"></div>
+  <div id="panelFoot">
+    <button class="navBtn" id="prevBtn">← PREV</button>
+    <div id="dots"></div>
+    <button class="navBtn primary" id="nextBtn">NEXT →</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   STARLINK 3D EXPLAINER — SpaceX Mission Control Edition
+   Units: Earth radius R = 100 (1 unit ≈ 63.7 km)
+   ============================================================ */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.FogExp2(0x000000, 0.00022);
+const camera = new THREE.PerspectiveCamera(48, innerWidth/innerHeight, 0.5, 9000);
+scene.add(new THREE.AmbientLight(0x6a7a96, 0.42));
+const sun = new THREE.DirectionalLight(0xfff4e8, 1.05); sun.position.set(380,160,240); scene.add(sun);
+const rim = new THREE.DirectionalLight(0x4a7ab8, 0.35); rim.position.set(-200,-80,-180); scene.add(rim);
+
+const R = 100;
+const ORB  = R*(6371+550)/6371;
+const GEOR = R*(6371+35786)/6371;
+const D2R = Math.PI/180;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function latLon(lat, lon, r){
+  const la=lat*D2R, lo=lon*D2R;
+  return new THREE.Vector3(r*Math.cos(la)*Math.sin(lo), r*Math.sin(la), r*Math.cos(la)*Math.cos(lo));
+}
+
+/* ── Multi-layer starfield (SpaceX deep space) ── */
+(function stars(){
+  // Far dense field
+  const layers=[
+    {n:2200, size:1.1, color:0x9aabbf, opacity:.55, r0:2800, r1:900},
+    {n:800,  size:1.8, color:0xd0e0f5, opacity:.85, r0:2400, r1:600},
+    {n:120,  size:2.6, color:0xffffff, opacity:.95, r0:2200, r1:400},
+  ];
+  layers.forEach(L=>{
+    const pos=new Float32Array(L.n*3);
+    for(let i=0;i<L.n;i++){
+      const u=Math.random()*2-1, a=Math.random()*Math.PI*2, rr=Math.sqrt(1-u*u);
+      const v=new THREE.Vector3(rr*Math.cos(a), u, rr*Math.sin(a)).multiplyScalar(L.r0+Math.random()*L.r1);
+      pos.set([v.x,v.y,v.z], i*3);
+    }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({
+      color:L.color,size:L.size,sizeAttenuation:false,transparent:true,opacity:L.opacity,depthWrite:false
+    })));
+  });
+})();
+
+/* ── Earth: dark oceans + land dots + graticule + atmosphere ── */
+const earth = new THREE.Group(); scene.add(earth);
+earth.add(new THREE.Mesh(
+  new THREE.SphereGeometry(R, 72, 72),
+  new THREE.MeshPhongMaterial({color:0x020810, emissive:0x010408, shininess:12, specular:0x0a1830})
+));
+// Atmosphere glow
+earth.add(new THREE.Mesh(
+  new THREE.SphereGeometry(R*1.045, 56, 56),
+  new THREE.ShaderMaterial({
+    uniforms:{ c:{value:0.48}, p:{value:4.6}, glowColor:{value:new THREE.Color(0x1a6ec4)} },
+    vertexShader:`varying float vI; uniform float c,p;
+      void main(){ vec3 n=normalize(normalMatrix*normal);
+        vec3 vv=normalize((modelViewMatrix*vec4(position,1.)).xyz);
+        vI=pow(c+dot(n,vv),p);
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying float vI; uniform vec3 glowColor;
+      void main(){ gl_FragColor=vec4(glowColor, vI*.95);}`,
+    side:THREE.BackSide, blending:THREE.AdditiveBlending, transparent:true, depthWrite:false
+  })
+));
+// Thin bright limb
+earth.add(new THREE.Mesh(
+  new THREE.SphereGeometry(R*1.008, 48, 48),
+  new THREE.MeshBasicMaterial({color:0x3a8fd4, transparent:true, opacity:0.07, side:THREE.BackSide, depthWrite:false})
+));
+
+const LAND=[[],[15,22,24,30],[12,20,22,32,38,41,55,57,63,66],
+[4,7,11,20,25,32,40,42,46,49,51,59,62,72],[3,23,26,33,37,72],[0,2,3,25,37,72],
+[3,25,34,36,37,39,40,69],[9,25,33,65],[11,24,35,65],[11,22,34,64],
+[11,21,34,36,40,60,61,64],[12,20,34,60,62,63],[13,17,19,20,33,61],
+[14,17,19,21,32,47,50,60],[15,18,21,22,32,46,50,53,55,58,60,61],
+[17,19,32,46,50,52,55,58,60,61],[19,25,33,46,51,52,56,61],
+[20,26,37,45,55,61,62,66],[19,29,38,44,56,61,62,66],[19,29,38,44,57,59,63,66],
+[20,28,38,44,45,46,61,64],[21,28,38,43,44,46,60,65],[21,26,38,43,44,45,58,66],
+[21,26,39,42,58,66],[21,25,39,42,58,66],[21,24,63,66,70,71],[21,23,64,65,69,71],
+[21,23,69,70],[21,23],[],[24,25],[24,26,36,68],[10,72],[0,72],[0,72],[0,72]];
+function isLand(lat, lon){
+  let r=Math.floor((90-lat)/5); r=Math.max(0,Math.min(35,r));
+  let c=Math.floor(((lon+180)%360)/5);
+  const row=LAND[r];
+  for(let i=0;i<row.length;i+=2) if(c>=row[i]&&c<row[i+1]) return true;
+  return false;
+}
+(function landDots(){
+  const pts=[]; const N=19000, ga=Math.PI*(3-Math.sqrt(5));
+  for(let i=0;i<N;i++){
+    const y=1-(i/(N-1))*2, rad=Math.sqrt(1-y*y), th=ga*i;
+    const x=Math.cos(th)*rad, z=Math.sin(th)*rad;
+    const lat=Math.asin(y)/D2R, lon=Math.atan2(x,z)/D2R;
+    if(isLand(lat,lon)) pts.push(x*R*1.003, y*R*1.003, z*R*1.003);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts),3));
+  earth.add(new THREE.Points(g, new THREE.PointsMaterial({color:0x5ad4cc,size:1.0,transparent:true,opacity:.92,depthWrite:false})));
+})();
+// City night lights (sparse bright dots on land)
+(function cityLights(){
+  const cities=[
+    [40.7,-74],[34.0,-118],[51.5,-0.1],[48.8,2.3],[35.6,139.7],[22.3,114.1],
+    [1.3,103.8],[13.7,100.5],[18.8,98.9],[-33.8,151.2],[-23.5,-46.6],[55.7,37.6],
+    [28.6,77.2],[19.4,-99.1],[41.9,12.5],[52.5,13.4],[25.2,55.3],[37.5,127.0],
+    [-34.6,-58.4],[39.9,116.4],[-6.2,106.8],[3.1,101.6],[14.6,121.0],[31.2,121.5],
+    [23.1,113.2],[30.0,31.2],[41.0,28.9],[-26.2,28.0],[59.3,18.0],[60.1,24.9]
+  ];
+  const pts=[];
+  cities.forEach(([lat,lon])=>{
+    const p=latLon(lat,lon,R*1.005);
+    pts.push(p.x,p.y,p.z);
+  });
+  // Extra random coastal/land sparkle
+  for(let i=0;i<180;i++){
+    const lat=(Math.random()-0.5)*140, lon=(Math.random()-0.5)*360;
+    if(isLand(lat,lon)){ const p=latLon(lat,lon,R*1.005); pts.push(p.x,p.y,p.z); }
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts),3));
+  earth.add(new THREE.Points(g, new THREE.PointsMaterial({
+    color:0xffe0a0, size:2.2, transparent:true, opacity:.85, depthWrite:false,
+    blending:THREE.AdditiveBlending, sizeAttenuation:false
+  })));
+})();
+(function graticule(){
+  const mat=new THREE.LineBasicMaterial({color:0x0e2a4a,transparent:true,opacity:.28});
+  const seg=96;
+  for(let lat=-60;lat<=60;lat+=30){
+    const rp=R*Math.cos(lat*D2R)*1.001, y=R*Math.sin(lat*D2R)*1.001, arr=[];
+    for(let i=0;i<=seg;i++){const a=i/seg*Math.PI*2; arr.push(new THREE.Vector3(rp*Math.sin(a),y,rp*Math.cos(a)));}
+    earth.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(arr), mat));
+  }
+  for(let lon=0;lon<180;lon+=30){
+    const arr=[];
+    for(let i=0;i<=seg;i++){const a=i/seg*Math.PI*2;
+      arr.push(new THREE.Vector3(R*Math.cos(a)*Math.sin(lon*D2R)*1.001, R*Math.sin(a)*1.001, R*Math.cos(a)*Math.cos(lon*D2R)*1.001));}
+    earth.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(arr), mat));
+  }
+})();
+// LEO orbit ring (subtle)
+(function orbitRing(){
+  const arr=[]; for(let i=0;i<=128;i++){const a=i/128*Math.PI*2;
+    arr.push(new THREE.Vector3(ORB*Math.sin(a), 0, ORB*Math.cos(a)));}
+  const ring=new THREE.Line(new THREE.BufferGeometry().setFromPoints(arr),
+    new THREE.LineBasicMaterial({color:0x00aeef,transparent:true,opacity:.08}));
+  scene.add(ring);
+})();
+
+/* ── Starlink constellation (28 planes × 26) ── */
+const PLANES=28, PER=26, NSAT=PLANES*PER;
+let timeScale = reduced ? 20 : 60;
+let isPaused = false;
+let simTime = 0;
+let missionT0 = performance.now();
+const BASE_OMEGA = (2*Math.PI/(95.6*60));
+const satBasis=[];
+for(let p=0;p<PLANES;p++){
+  const raan=p/PLANES*Math.PI*2, inc=53*D2R;
+  const A=new THREE.Vector3(Math.sin(raan),0,Math.cos(raan));
+  const P=new THREE.Vector3(Math.cos(raan),0,-Math.sin(raan));
+  const B=P.multiplyScalar(Math.cos(inc)).add(new THREE.Vector3(0,Math.sin(inc),0));
+  for(let s=0;s<PER;s++) satBasis.push({A,B,ph:s/PER*Math.PI*2 + p*0.42});
+}
+const satPosArr=new Float32Array(NSAT*3);
+const satGeo=new THREE.BufferGeometry();
+satGeo.setAttribute('position', new THREE.BufferAttribute(satPosArr,3));
+const satMat=new THREE.PointsMaterial({color:0xc8e8ff,size:1.6,transparent:true,opacity:.88,depthWrite:false});
+const constellation=new THREE.Points(satGeo,satMat); constellation.frustumCulled=false; scene.add(constellation);
+const _sv=new THREE.Vector3();
+function satPos(i,t,out){
+  const omega = BASE_OMEGA * timeScale;
+  const b=satBasis[i], a=b.ph + t * omega;
+  return out.set(
+    ORB*(Math.cos(a)*b.A.x+Math.sin(a)*b.B.x),
+    ORB*(Math.cos(a)*b.A.y+Math.sin(a)*b.B.y),
+    ORB*(Math.cos(a)*b.A.z+Math.sin(a)*b.B.z));
+}
+function updateConstellation(t){
+  for(let i=0;i<NSAT;i++){ satPos(i,t,_sv); satPosArr[i*3]=_sv.x; satPosArr[i*3+1]=_sv.y; satPosArr[i*3+2]=_sv.z; }
+  satGeo.attributes.position.needsUpdate=true;
+}
+const meshLinkGeo=new THREE.BufferGeometry();
+const meshLinkArr=new Float32Array(PER*2*2*3);
+meshLinkGeo.setAttribute('position', new THREE.BufferAttribute(meshLinkArr,3));
+const meshLinks=new THREE.LineSegments(meshLinkGeo,
+  new THREE.LineBasicMaterial({color:0x00e676,transparent:true,opacity:.32,blending:THREE.AdditiveBlending,depthWrite:false}));
+meshLinks.frustumCulled=false; meshLinks.visible=false; scene.add(meshLinks);
+const _m1=new THREE.Vector3(), _m2=new THREE.Vector3();
+function updateMeshLinks(t){
+  const p1=6, p2=7; let k=0;
+  for(let s=0;s<PER;s++){
+    satPos(p1*PER+s,t,_m1); satPos(p1*PER+((s+1)%PER),t,_m2);
+    meshLinkArr.set([_m1.x,_m1.y,_m1.z,_m2.x,_m2.y,_m2.z],k); k+=6;
+    satPos(p2*PER+s,t,_m2);
+    meshLinkArr.set([_m1.x,_m1.y,_m1.z,_m2.x,_m2.y,_m2.z],k); k+=6;
+  }
+  meshLinkGeo.attributes.position.needsUpdate=true;
+}
+
+/* ── GEO comparison ── */
+const geoGroup=new THREE.Group(); geoGroup.visible=false; scene.add(geoGroup);
+(function(){
+  const arr=[]; for(let i=0;i<=180;i++){const a=i/180*Math.PI*2; arr.push(new THREE.Vector3(GEOR*Math.sin(a),0,GEOR*Math.cos(a)));}
+  geoGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(arr),
+    new THREE.LineBasicMaterial({color:0xff3b3b,transparent:true,opacity:.45})));
+})();
+const geoSatPos=latLon(0, 99, GEOR);
+const geoSat=new THREE.Mesh(new THREE.BoxGeometry(14,14,14), new THREE.MeshBasicMaterial({color:0xff6b6b}));
+geoSat.position.copy(geoSatPos); geoGroup.add(geoSat);
+
+/* ── Ground sites ── */
+const dishLL={lat:18.79, lon:98.98};
+const gwLL  ={lat:15.2,  lon:100.0};
+const popLL ={lat:13.75, lon:100.52};
+const shipLL={lat:6.0,   lon:92.0};
+const dishPos=latLon(dishLL.lat,dishLL.lon,R);
+const gwPos  =latLon(gwLL.lat,gwLL.lon,R);
+const popPos =latLon(popLL.lat,popLL.lon,R);
+const shipPos=latLon(shipLL.lat,shipLL.lon,R);
+const dishN=dishPos.clone().normalize();
+const dishTop=dishPos.clone().add(dishN.clone().multiplyScalar(1.1));
+
+function groundPad(color, r){
+  const m=new THREE.Mesh(new THREE.CircleGeometry(r,48),
+    new THREE.MeshBasicMaterial({color,transparent:true,opacity:.28,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,depthWrite:false}));
+  m.rotation.x=-Math.PI/2; return m;
+}
+function placeOnGround(group, pos){
+  group.position.copy(pos);
+  group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), pos.clone().normalize());
+  earth.add(group);
+}
+const dishG=new THREE.Group();
+dishG.add(groundPad(0x00aeef, 2.1));
+// pulsing ring under dish
+const dishRing=new THREE.Mesh(new THREE.RingGeometry(1.6,1.85,48),
+  new THREE.MeshBasicMaterial({color:0x00aeef,transparent:true,opacity:.35,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+dishRing.rotation.x=-Math.PI/2; dishRing.position.y=0.02; dishG.add(dishRing);
+const house=new THREE.Mesh(new THREE.BoxGeometry(1.1,.8,1.1), new THREE.MeshPhongMaterial({color:0x1a2433}));
+house.position.set(-1.1,.4,0); dishG.add(house);
+const post=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,1.1,10), new THREE.MeshPhongMaterial({color:0xb0bec8}));
+post.position.set(.6,.55,0); dishG.add(post);
+const disc=new THREE.Mesh(new THREE.CircleGeometry(.85,36),
+  new THREE.MeshPhongMaterial({color:0xe8eef5,side:THREE.DoubleSide,emissive:0x0a2038}));
+disc.position.set(.6,1.15,0); disc.rotation.x=-Math.PI/2+0.6; dishG.add(disc);
+placeOnGround(dishG, dishPos);
+
+const gwG=new THREE.Group();
+gwG.add(groundPad(0xf5a623, 2.3));
+[[-.8,0],[0,.7],[.8,-.1]].forEach(o=>{
+  const d=new THREE.Mesh(new THREE.SphereGeometry(.55,20,14), new THREE.MeshPhongMaterial({color:0xf2f5fa,emissive:0x2a1e0a}));
+  d.position.set(o[0],.5,o[1]); gwG.add(d);
+});
+placeOnGround(gwG, gwPos);
+
+const popG=new THREE.Group();
+popG.add(groundPad(0xdfe8f5, 1.9));
+const tower=new THREE.Mesh(new THREE.BoxGeometry(.8,1.7,.8), new THREE.MeshPhongMaterial({color:0x2a3548,emissive:0x0a1220}));
+tower.position.y=.85; popG.add(tower);
+placeOnGround(popG, popPos);
+
+const shipG=new THREE.Group();
+shipG.add(groundPad(0x00e676, 2.4));
+const hull=new THREE.Mesh(new THREE.BoxGeometry(2.2,.5,.8), new THREE.MeshPhongMaterial({color:0x2a3848}));
+hull.position.y=.3; shipG.add(hull);
+placeOnGround(shipG, shipPos);
+
+/* ── Hero satellites ── */
+function makeSatModel(){
+  const g=new THREE.Group();
+  const bus=new THREE.Mesh(new THREE.BoxGeometry(2.6,.22,1.3), new THREE.MeshPhongMaterial({color:0xc5ced9,emissive:0x121820}));
+  g.add(bus);
+  const panel=new THREE.Mesh(new THREE.BoxGeometry(.07,6.2,2.3),
+    new THREE.MeshPhongMaterial({color:0x0d1f4a,emissive:0x06122e,shininess:80}));
+  panel.position.y=3.3; g.add(panel);
+  // solar cell grid lines feel
+  const panelGlow=new THREE.Mesh(new THREE.BoxGeometry(.08,6.15,2.25),
+    new THREE.MeshBasicMaterial({color:0x1a4a9e,transparent:true,opacity:.25,blending:THREE.AdditiveBlending}));
+  panelGlow.position.y=3.3; g.add(panelGlow);
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8), new THREE.MeshBasicMaterial({color:0x00aeef}));
+  eye.position.y=-.2; g.add(eye);
+  return g;
+}
+const east=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0), dishN).normalize();
+const north=new THREE.Vector3().crossVectors(dishN, east).normalize();
+const trackDir=east.clone().multiplyScalar(Math.cos(50*D2R)).add(north.clone().multiplyScalar(Math.sin(50*D2R))).normalize();
+function heroPos(th, out){
+  return out.set(
+    ORB*(Math.cos(th)*dishN.x+Math.sin(th)*trackDir.x),
+    ORB*(Math.cos(th)*dishN.y+Math.sin(th)*trackDir.y),
+    ORB*(Math.cos(th)*dishN.z+Math.sin(th)*trackDir.z));
+}
+const HSPACE=0.72, HN=3, HOMEGA=reduced?0.05:0.10;
+const heroes=[]; const heroGroup=new THREE.Group(); heroGroup.visible=false; scene.add(heroGroup);
+for(let i=0;i<HN;i++){ const m=makeSatModel(); heroGroup.add(m); heroes.push({mesh:m, th:0}); }
+(function(){
+  const arr=[], v=new THREE.Vector3();
+  for(let i=0;i<=60;i++){ heroPos(-1.25+i/60*2.5, v); arr.push(v.clone()); }
+  const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(arr),
+    new THREE.LineBasicMaterial({color:0x00aeef,transparent:true,opacity:.2}));
+  heroGroup.add(l);
+})();
+let servingIdx=0, hoCount=0, hoLastT=0, hoFlashT=-9;
+function updateHeroes(t){
+  let best=1e9, bi=0;
+  for(let i=0;i<HN;i++){
+    const cyc=HN*HSPACE;
+    let th=(( -0.2 + i*HSPACE + t*HOMEGA) % cyc + cyc) % cyc - cyc/2;
+    heroes[i].th=th;
+    heroPos(th, heroes[i].mesh.position);
+    const baseQuat = new THREE.Quaternion();
+    baseQuat.setFromUnitVectors(new THREE.Vector3(0,1,0), heroes[i].mesh.position.clone().normalize());
+    const extraRot = new THREE.Quaternion();
+    extraRot.setFromAxisAngle(new THREE.Vector3(0,1,0), t * 0.25 + i * 1.7);
+    baseQuat.multiply(extraRot);
+    heroes[i].mesh.quaternion.copy(baseQuat);
+    if (i === servingIdx) {
+      const pulse = 1 + Math.sin(t * 3.2) * 0.04;
+      heroes[i].mesh.scale.setScalar(pulse);
+    } else {
+      heroes[i].mesh.scale.setScalar(1);
+    }
+    if(Math.abs(th)<best){best=Math.abs(th); bi=i;}
+  }
+  if(bi!==servingIdx){
+    servingIdx=bi; hoCount++; hoLastT=simTime;
+    if(state.step===6){ hoFlashT=simTime;
+      document.getElementById('hoFlash').classList.add('show');
+      setTimeout(()=>document.getElementById('hoFlash').classList.remove('show'), 1600);
+    }
+  }
+}
+function servingPos(){ return heroes[servingIdx].mesh.position; }
+const shipSat=makeSatModel(); shipSat.visible=false; scene.add(shipSat);
+const shipN=shipPos.clone().normalize();
+shipSat.position.copy(shipN).multiplyScalar(ORB);
+shipSat.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), shipN);
+
+/* ── Beams ── */
+function dynLine(color, opacity){
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6),3));
+  const l=new THREE.Line(g, new THREE.LineBasicMaterial({color,transparent:true,opacity,blending:THREE.AdditiveBlending,depthWrite:false}));
+  l.frustumCulled=false; l.visible=false; scene.add(l);
+  l.set2=(a,b)=>{const p=g.attributes.position; p.setXYZ(0,a.x,a.y,a.z); p.setXYZ(1,b.x,b.y,b.z); p.needsUpdate=true;};
+  return l;
+}
+const gwN=gwPos.clone().normalize(), popN=popPos.clone().normalize();
+const gwTop=gwPos.clone().add(gwN.clone().multiplyScalar(0.9));
+const popTop=popPos.clone().add(popN.clone().multiplyScalar(1.0));
+const shipTop=shipPos.clone().add(shipN.clone().multiplyScalar(0.8));
+
+const userBeam=dynLine(0x00aeef,.9);
+const gwBeam  =dynLine(0xf5a623,.85);
+const laserL1 =dynLine(0x00e676,.85);
+const laserL2 =dynLine(0x00e676,.9);
+laserL1.material.color.set(0x00aeef);
+const fiberPts=[];
+(function(){
+  const ang=Math.acos(THREE.MathUtils.clamp(gwN.dot(popN),-1,1)), sa=Math.sin(ang);
+  for(let i=0;i<=24;i++){
+    const u=i/24, w1=Math.sin((1-u)*ang)/sa, w2=Math.sin(u*ang)/sa;
+    fiberPts.push(new THREE.Vector3(
+      (gwN.x*w1+popN.x*w2)*R*1.004,(gwN.y*w1+popN.y*w2)*R*1.004,(gwN.z*w1+popN.z*w2)*R*1.004));
+  }
+})();
+const fiberLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(fiberPts),
+  new THREE.LineBasicMaterial({color:0xf5a623,transparent:true,opacity:.75,blending:THREE.AdditiveBlending,depthWrite:false}));
+fiberLine.visible=false; scene.add(fiberLine);
+const geoBeam=new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([dishTop, geoSatPos]),
+  new THREE.LineDashedMaterial({color:0xff5a5a,dashSize:10,gapSize:7,transparent:true,opacity:.8}));
+geoBeam.computeLineDistances(); geoBeam.visible=false; scene.add(geoBeam);
+
+/* ── Labels ── */
+const labels={};
+function makeLabel(key, text, color, h, anchor){
+  const cv=document.createElement('canvas'), ctx=cv.getContext('2d');
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true,depthTest:false,depthWrite:false}));
+  sp.renderOrder=20; sp.visible=false; scene.add(sp);
+  const L={sprite:sp, anchor, redraw(){
+    ctx.font='600 44px "IBM Plex Sans Thai", "Inter", sans-serif';
+    const w=Math.ceil(ctx.measureText(text).width);
+    cv.width=w+72; cv.height=80;
+    const c2=cv.getContext('2d');
+    c2.font='600 44px "IBM Plex Sans Thai", "Inter", sans-serif';
+    c2.fillStyle='rgba(0,0,0,.88)'; c2.strokeStyle=color; c2.lineWidth=2;
+    const r=4, W=cv.width-4, H=cv.height-4;
+    c2.beginPath();
+    c2.moveTo(2+r,2); c2.lineTo(2+W-r,2); c2.quadraticCurveTo(2+W,2,2+W,2+r);
+    c2.lineTo(2+W,2+H-r); c2.quadraticCurveTo(2+W,2+H,2+W-r,2+H);
+    c2.lineTo(2+r,2+H); c2.quadraticCurveTo(2,2+H,2,2+H-r);
+    c2.lineTo(2,2+r); c2.quadraticCurveTo(2,2,2+r,2); c2.closePath();
+    c2.fill(); c2.stroke();
+    // accent bar
+    c2.fillStyle=color; c2.fillRect(2,2,3,H);
+    c2.fillStyle='#FFFFFF'; c2.textBaseline='middle';
+    c2.fillText(text, 36, cv.height/2+1);
+    sp.material.map=new THREE.CanvasTexture(cv);
+    sp.material.map.anisotropy=4; sp.material.needsUpdate=true;
+    sp.scale.set(h*cv.width/cv.height, h, 1);
+  }};
+  L.redraw(); if(anchor) sp.position.copy(anchor);
+  labels[key]=L; return L;
+}
+makeLabel('dish','จานผู้ใช้ (Dishy)','#00AEEF',3.6, dishPos.clone().add(dishN.clone().multiplyScalar(3.4)));
+makeLabel('sat','ดาวเทียม Starlink · ~550 กม.','#00AEEF',5,null);
+makeLabel('gw','เกตเวย์ (สถานีภาคพื้น)','#F5A623',4.6, gwPos.clone().add(gwN.clone().multiplyScalar(3.2)));
+makeLabel('pop','PoP · ประตูเข้าอินเทอร์เน็ต','#DFE8F5',4.6, popPos.clone().add(popN.clone().multiplyScalar(3.2)));
+makeLabel('ship','เรือกลางมหาสมุทร (ไม่มีเกตเวย์ใกล้)','#00E676',10, shipPos.clone().add(shipN.clone().multiplyScalar(5)));
+makeLabel('laser','เลเซอร์ระหว่างดาวเทียม · 100–200 Gbps','#00E676',13,null);
+makeLabel('leo','Starlink LEO · ~550 กม. · ping 25–50 ms','#00AEEF',62, latLon(30,99,ORB+30));
+makeLabel('geo','ดาวเทียม GEO · 35,786 กม. · ping ~600 ms','#FF3B3B',95, geoSatPos.clone().add(new THREE.Vector3(0,55,0)));
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>Object.values(labels).forEach(l=>l.redraw()));
+
+/* ── Data pulses ── */
+const glowTex=(function(){
+  const cv=document.createElement('canvas'); cv.width=cv.height=128;
+  const c=cv.getContext('2d'), g=c.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.25,'rgba(255,255,255,.85)');
+  g.addColorStop(.6,'rgba(255,255,255,.18)'); g.addColorStop(1,'rgba(255,255,255,0)');
+  c.fillStyle=g; c.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(cv);
+})();
+class Pulse{
+  constructor(getPts, o){
+    this.getPts=getPts; this.dur=o.dur; this.dir=o.dir||1; this.pp=!!o.pingpong;
+    this.offset=o.offset||0; this.onLeg=o.onLeg||null;
+    this.sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:o.color,transparent:true,
+      blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false}));
+    this.sp.scale.set(o.size||4,o.size||4,1); this.sp.renderOrder=15;
+    this.sp.visible=false; scene.add(this.sp);
+  }
+  update(t){
+    if(!this.sp.visible) return;
+    const pts=this.getPts();
+    let total=0; const cum=[0];
+    for(let i=1;i<pts.length;i++){ total+=pts[i].distanceTo(pts[i-1]); cum.push(total); }
+    let s=((t/this.dur+this.offset)%1+1)%1;
+    let fwd=true;
+    if(this.pp){ fwd = s<.5; s = fwd ? s*2 : (1-s)*2; }
+    if(this.dir<0) s=1-s;
+    const d=s*total;
+    let i=1; while(i<cum.length-1 && cum[i]<d) i++;
+    const segLen=cum[i]-cum[i-1]||1e-6, u=(d-cum[i-1])/segLen;
+    this.sp.position.lerpVectors(pts[i-1],pts[i],u);
+    // subtle size breathe
+    const base=this.sp.scale.x;
+    const breath=1+Math.sin(t*8+this.offset*10)*.08;
+    // keep scale proportional
+    if(this.onLeg) this.onLeg(i-1, fwd);
+  }
+}
+const journeyPts=()=>[dishTop, servingPos(), gwTop, ...fiberPts.slice(2,-2), popTop];
+let legText='';
+const pulses={
+  up:     new Pulse(()=>[dishTop,servingPos()],{color:0x7adfff,dur:1.7,size:3.4}),
+  down:   new Pulse(()=>[dishTop,servingPos()],{color:0x7adfff,dur:1.7,dir:-1,offset:.5,size:3.4}),
+  gw1:    new Pulse(()=>[servingPos(),gwTop],{color:0xffc978,dur:1.7,size:3.4}),
+  gw2:    new Pulse(()=>[servingPos(),gwTop],{color:0xffc978,dur:1.7,dir:-1,offset:.5,size:3.4}),
+  fib1:   new Pulse(()=>fiberPts,{color:0xffc978,dur:1.5,size:2.5}),
+  fib2:   new Pulse(()=>fiberPts,{color:0xffc978,dur:1.5,dir:-1,offset:.5,size:2.5}),
+  laser:  new Pulse(()=>[shipTop,shipSat.position,servingPos(),gwTop],{color:0x8fffbf,dur:3.4,size:5.2}),
+  journey:new Pulse(journeyPts,{color:0xf0f8ff,dur:8,pingpong:true,size:4.6,
+            onLeg:(i,fwd)=>{
+              const name = i===0?'ยิงคลื่นขึ้นดาวเทียม · Ku-band ~2 ms'
+                        : i===1?'ดาวเทียมสะท้อนลงเกตเวย์ · Ka-band ~2 ms'
+                        : 'วิ่งในไฟเบอร์ → PoP → อินเทอร์เน็ต ~5–15 ms';
+              legText=(fwd?'ขาไป ▸ ':'ขากลับ ◂ ')+name;
+            }}),
+};
+
+/* ── Camera ── */
+const lonTH=dishLL.lon*D2R;
+const cur={r:430,th:lonTH+0.55,ph:1.15,tgt:new THREE.Vector3()};
+const goal={r:430,th:lonTH+0.55,ph:1.15,tgt:new THREE.Vector3()};
+let userMoved=false;
+const pointers=new Map(); let lastPinch=0;
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); canvas.classList.add('dragging');});
+canvas.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId)) return;
+  const p=pointers.get(e.pointerId), dx=e.clientX-p.x, dy=e.clientY-p.y;
+  p.x=e.clientX; p.y=e.clientY;
+  if(pointers.size===1){
+    goal.th-=dx*0.0045; goal.ph=THREE.MathUtils.clamp(goal.ph-dy*0.0045,.12,Math.PI-.12);
+    userMoved=true;
+  } else if(pointers.size===2){
+    const ps=[...pointers.values()];
+    const d=Math.hypot(ps[0].x-ps[1].x, ps[0].y-ps[1].y);
+    if(lastPinch>0) goal.r=THREE.MathUtils.clamp(goal.r*lastPinch/d,16,2800);
+    lastPinch=d; userMoved=true;
+  }
+});
+function endPtr(e){pointers.delete(e.pointerId); lastPinch=0; if(!pointers.size) canvas.classList.remove('dragging');}
+canvas.addEventListener('pointerup',endPtr); canvas.addEventListener('pointercancel',endPtr);
+canvas.addEventListener('wheel',e=>{e.preventDefault();
+  goal.r=THREE.MathUtils.clamp(goal.r*Math.exp(e.deltaY*0.0011),16,2800); userMoved=true;},{passive:false});
+function updateCamera(dt){
+  const k=1-Math.exp(-3.6*dt);
+  cur.r+=(goal.r-cur.r)*k;
+  cur.th+=(goal.th-cur.th)*k;
+  cur.ph+=(goal.ph-cur.ph)*k;
+  cur.tgt.lerp(goal.tgt,k);
+  camera.position.setFromSphericalCoords(cur.r,cur.ph,cur.th).add(cur.tgt);
+  camera.lookAt(cur.tgt);
+}
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+/* ── 9 Steps ── */
+const STEPS=[
+{ eyebrow:'ภาพรวม · ขั้นที่ 1 / 9', title:'Starlink คืออะไร?',
+  cam:{r:430,th:lonTH+0.55,ph:1.15,tgt:[0,0,0]}, vis:{}, labels:[], pulses:[],
+  leds:{const:1,link:0,gw:0,laser:0,ho:1},
+  body:`<p><b>Starlink</b> คือ “กลุ่มดาวเทียม” (mega‑constellation) ของ <b>SpaceX</b> ที่ใช้ดาวเทียมขนาดเล็ก<b>นับหมื่นดวง</b>โคจรรอบโลกใน<span class="c">วงโคจรต่ำ (LEO)</span> เพื่อกระจายอินเทอร์เน็ตความเร็วสูงลงมาให้ทุกจุดบนโลก — จุดสีฟ้าที่วิ่งอยู่รอบโลกจำลองนี้คือดาวเทียมที่เคลื่อนตามฟิสิกส์วงโคจรจริง (เร่งเวลา ×60 · ลากหมุนดูได้)</p>
+  <div class="kv">
+    <div><span class="k">ในวงโคจรตอนนี้</span><span class="v">10,700+ ดวง</span></div>
+    <div><span class="k">ยิงขึ้นแล้วทั้งหมด</span><span class="v">12,400+ ดวง</span></div>
+    <div><span class="k">ระดับความสูง</span><span class="v">~480–570 กม.</span></div>
+    <div><span class="k">ให้บริการแล้ว</span><span class="v">160+ ประเทศ/พื้นที่</span></div>
+  </div>
+  <p class="note">หลักคิด SpaceX: แทนดาวเทียมใหญ่ดวงเดียวลอยสูงมาก — ใช้ดาวเทียมเล็กจำนวนมหาศาลลอย “ต่ำ ๆ” ให้สัญญาณเดินทางสั้นที่สุด</p>
+  <p class="note"><b>MISSION CONTROL:</b> ปรับ SPEED · ปุ่ม DISH / GATEWAY / SHIP / ORBIT · ดู LIVE badge บนขวา</p>`},
+
+{ eyebrow:'หลักการ · ขั้นที่ 2 / 9', title:'ทำไมต้องวงโคจรต่ำ? — LEO vs GEO',
+  cam:{r:1800,th:lonTH+0.35,ph:1.28,tgt:[0,0,0]}, vis:{geo:true,geoBeam:true}, labels:['leo','geo'], pulses:[],
+  leds:{const:1,link:0,gw:0,laser:0,ho:0},
+  body:`<p>ดาวเทียมอินเทอร์เน็ตยุคเก่าอยู่ใน<span class="r">วงโคจรค้างฟ้า (GEO)</span> สูง <b>35,786 กม.</b> (วงแหวนแดงไกล ๆ) — สูงขนาดที่คลื่นวิทยุซึ่งวิ่งด้วย<b>ความเร็วแสง</b>ยังต้องใช้เวลาเดินทางไป‑กลับครบวงจรอย่างต่ำ <b class="r">~477 ms</b> ตามฟิสิกส์ล้วน ๆ พอบวกการประมวลผลก็กลายเป็น ping 600+ ms → วิดีโอคอลหน่วง เล่นเกมแทบไม่ได้</p>
+  <p>Starlink ลงมาอยู่แค่ <b class="c">~550 กม.</b> ใกล้กว่าราว <b>65 เท่า</b> ระยะทางไป‑กลับทั้งเส้นทางเหลือหลักพัน กม. → ping เหลือเพียง <b class="c">25–50 ms</b></p>
+  <div class="kv">
+    <div><span class="k">GEO 35,786 กม.</span><span class="v" style="color:var(--geo)">ping ~600 ms</span></div>
+    <div><span class="k">LEO ~550 กม.</span><span class="v" style="color:var(--cyan)">ping 25–50 ms</span></div>
+  </div>
+  <p class="note">ข้อแลกเปลี่ยน: ดาวเทียมยิ่งต่ำ ยิ่งมองเห็นพื้นโลกได้แคบและต้องวิ่งเร็วมาก — ดวงเดียวจึงไม่พอ ต้องใช้เป็น “ฝูง” นับหมื่นดวง</p>`},
+
+{ eyebrow:'ขั้นที่ 3 / 9 · ที่บ้านคุณ', title:'จาน Dishy: เสาอากาศ Phased Array',
+  cam:{r:26,th:lonTH+0.78,ph:1.0,tgt:'dish'}, vis:{heroes:true,userBeam:true,dim:true}, labels:['dish','sat'], pulses:[],
+  leds:{const:1,link:1,gw:0,laser:0,ho:1},
+  body:`<p>ทุกอย่างเริ่มที่จานหน้าบ้าน แต่ข้างในไม่ใช่จานสะท้อนแบบเดิม — มันคือแผง<b>เสาอากาศจิ๋วกว่า 1,000 ชิ้น</b>เรียงกัน เรียกว่า <b class="c">Phased Array</b></p>
+  <p>หลักการ: แต่ละชิ้นเสาอากาศมี <b>phase shifter</b> ที่ปรับเฟสของสัญญาณได้ละเอียดระดับ <b>องศา</b> เมื่อคลื่นจากทุกชิ้นเสริมกัน (constructive interference) จะเกิดเป็น <b>ลำแคบมาก</b> (beamwidth ~1–2°) ที่สามารถ “เหวี่ยง” ไปทิศใดก็ได้ในเสี้ยววินาที <b>โดยไม่ต้องขยับจานเลย</b></p>
+  <p>สังเกตเส้นสีฟ้า: จานกำลังล็อกเป้าดาวเทียมที่พุ่งข้ามฟ้าด้วยความเร็ว 7.6 กม./วินาที ได้อย่างต่อเนื่อง</p>
+  <div class="kv">
+    <div><span class="k">ชิ้นเสาอากาศในจาน</span><span class="v">1,000+ ชิ้น</span></div>
+    <div><span class="k">มุมกวาดท้องฟ้า</span><span class="v">~100–110°</span></div>
+    <div><span class="k">เวลาเปลี่ยนทิศลำคลื่น</span><span class="v">&lt; 1 มิลลิวินาที</span></div>
+    <div><span class="k">การเล็งตามดาวเทียม</span><span class="v">อิเล็กทรอนิกส์ล้วน</span></div>
+  </div>`},
+
+{ eyebrow:'ขั้นที่ 4 / 9 · ขึ้นสู่อวกาศ', title:'อัปลิงก์–ดาวน์ลิงก์: คุยกันด้วยคลื่น Ku‑band',
+  cam:{r:50,th:lonTH+0.6,ph:1.08,tgt:'mid'}, vis:{heroes:true,userBeam:true,dim:true}, labels:['dish','sat'], pulses:['up','down'],
+  leds:{const:1,link:1,gw:0,laser:0,ho:1},
+  body:`<p>จุดแสงที่วิ่งบนเส้นคือ<b>แพ็กเก็ตข้อมูล</b>ของคุณ กำลังเดินทาง 550+ กม. ขึ้นสู่อวกาศ ใช้เวลาเพียง <b class="c">~2 มิลลิวินาที</b>ต่อเที่ยว</p>
+  <p>จานส่ง<b>ขึ้น</b>ด้วยคลื่นย่าน <span class="c">Ku‑band 14.0–14.5 GHz</span> และดาวเทียมยิง<b>ลง</b>ที่ <span class="c">10.7–12.7 GHz</span> — ตัวดาวเทียมเองก็มี phased array สร้างลำคลื่นจำนวนมากพร้อมกัน แบ่งพื้นดินเป็น “เซลล์” เล็ก ๆ คล้ายเสาสัญญาณมือถือ</p>
+  <div class="kv">
+    <div><span class="k">อัปลิงก์ (ขึ้น)</span><span class="v">Ku 14.0–14.5 GHz</span></div>
+    <div><span class="k">ดาวน์ลิงก์ (ลง)</span><span class="v">Ku 10.7–12.7 GHz</span></div>
+    <div><span class="k">เวลาเดินทางเที่ยวเดียว</span><span class="v">~1.8–3 ms</span></div>
+    <div><span class="k">พื้นที่ให้บริการ</span><span class="v">แบ่งเป็นเซลล์แบบมือถือ</span></div>
+  </div>`},
+
+{ eyebrow:'ขั้นที่ 5 / 9 · กลับสู่พื้นดิน', title:'เกตเวย์ → ไฟเบอร์ → อินเทอร์เน็ต',
+  cam:{r:88,th:lonTH+0.45,ph:1.18,tgt:'midTH'}, vis:{heroes:true,userBeam:true,gwBeam:true,fiber:true,dim:true},
+  labels:['dish','sat','gw','pop'], pulses:['up','down','gw1','gw2','fib1','fib2'],
+  leds:{const:1,link:1,gw:1,laser:0,ho:1},
+  body:`<p>อินเทอร์เน็ต “จริง ๆ” ยังอยู่บนพื้นโลก ดาวเทียมโดยพื้นฐานจึงทำงานแบบ <b>“ท่อโค้ง” (bent pipe)</b>: รับสัญญาณจากจานคุณ (<span class="c">เส้นฟ้า</span>) แล้วสะท้อนลงหา<b class="a">สถานีเกตเวย์</b> (<span class="a">เส้นส้ม</span>) ที่ต้องอยู่ในรัศมีมองเห็นเดียวกัน โดยใช้คลื่นอีกย่านคือ <span class="a">Ka‑band</span></p>
+  <p>เกตเวย์หนึ่งสถานีมีจานโดมเรโดมราว 8–9 ชุด ต่อ<b>ไฟเบอร์</b>ตรงเข้า <b>PoP (Point of Presence)</b> ซึ่งเป็นประตูเข้าอินเทอร์เน็ตหลัก</p>
+  <div class="kv">
+    <div><span class="k">ดาวเทียม ↔ เกตเวย์</span><span class="v">Ka 17.8–30 GHz</span></div>
+    <div><span class="k">เกตเวย์ → PoP</span><span class="v">ไฟเบอร์ภาคพื้น</span></div>
+    <div><span class="k">1 ดาวเทียมรองรับ</span><span class="v">หลายพันผู้ใช้พร้อมกัน</span></div>
+    <div><span class="k">ทั่วโลกมีเกตเวย์</span><span class="v">หลายร้อยสถานี</span></div>
+  </div>`},
+
+{ eyebrow:'ขั้นที่ 6 / 9 · กลางมหาสมุทร', title:'ไม่มีเกตเวย์ใกล้ ๆ? ใช้เลเซอร์ระหว่างดาวเทียม',
+  cam:{r:320,th:93*D2R,ph:1.3,tgt:[0,0,0]}, vis:{heroes:true,laserScene:true,mesh:true,gwBeam:true,fiber:true},
+  labels:['ship','laser','gw'], pulses:['laser','fib1'],
+  leds:{const:1,link:1,gw:1,laser:1,ho:1},
+  body:`<p>แล้วเรือกลางมหาสมุทร เครื่องบิน หรือขั้วโลกล่ะ? แถวนั้น<b>ไม่มีสถานีเกตเวย์</b>ให้สะท้อนลง — ดาวเทียมรุ่นใหม่ (V2 Mini เป็นต้นไป) จึงติด<b class="g">เทอร์มินัลเลเซอร์ 4 ตัวต่อดวง</b> ยิงแสงหากันกลางอวกาศด้วยความเร็ว <b>100–200 Gbps</b> เป็นตาข่าย mesh (<span class="g">เส้นเขียว</span>)</p>
+  <p>ระบบเลือกเส้นทางที่ดีที่สุดแบบไดนามิก ส่งต่อข้อมูลข้ามดวงต่อดวง จนถึงดาวเทียมที่มองเห็นเกตเวย์ แล้วค่อยยิงลงพื้น</p>
+  <p>โบนัส: แสงใน<b>สุญญากาศ</b>เร็วกว่าแสงในใยแก้วนำแสงราว <b class="g">1.47 เท่า</b> — บางเส้นทางข้ามทวีปผ่านอวกาศจึงเร็วกว่าสายไฟเบอร์ใต้ทะเล</p>
+  <div class="kv">
+    <div><span class="k">เทอร์มินัลเลเซอร์/ดวง</span><span class="v">4 ตัว (V2+)</span></div>
+    <div><span class="k">ความเร็วต่อลิงก์เลเซอร์</span><span class="v">100–200 Gbps</span></div>
+    <div><span class="k">ระยะเชื่อมระหว่างดวง</span><span class="v">ไกลได้หลายพัน กม.</span></div>
+    <div><span class="k">ทำให้ใช้ได้ใน</span><span class="v">ทะเล · อากาศ · ขั้วโลก</span></div>
+  </div>`},
+
+{ eyebrow:'ขั้นที่ 7 / 9 · เบื้องหลังที่มองไม่เห็น', title:'Handover: สลับดาวเทียมตลอดเวลาแบบไร้รอยต่อ',
+  cam:{r:62,th:lonTH+0.85,ph:0.98,tgt:'mid'}, vis:{heroes:true,userBeam:true,dim:true}, labels:['dish','sat'], pulses:['up','down'],
+  leds:{const:1,link:1,gw:0,laser:0,ho:1},
+  body:`<p>ที่ความสูง 550 กม. ดาวเทียมต้องวิ่ง <b>7.6 กม./วินาที</b> (~27,500 กม./ชม.) เพื่อไม่ให้ตกลงมา — รอบโลกครบทุก <b>~95 นาที</b> และจะอยู่ในมุมมองจานของคุณครั้งละแค่ <b class="c">~4 นาที</b>เท่านั้น!</p>
+  <p>ระบบจึงคำนวณตารางใหม่<b>ทุก ~15 วินาที</b> แล้วสลับให้แบบที่คุณไม่รู้สึก — <b>จ้องเส้นสีฟ้าไว้</b> เมื่อดวงเดิมลับขอบฟ้า ลำคลื่นจะกระโดดไปหาดวงถัดไปทันที</p>
+  <div class="live">สลับดาวเทียมไปแล้ว <b id="hoCountEl" class="c">0</b> ครั้ง · ครั้งล่าสุดเมื่อ <b id="hoAgoEl" class="c">0</b> วิที่แล้ว</div>
+  <div class="kv">
+    <div><span class="k">ความเร็วดาวเทียม</span><span class="v">7.66 กม./วินาที</span></div>
+    <div><span class="k">โคจรรอบโลก</span><span class="v">~95 นาที/รอบ</span></div>
+    <div><span class="k">อยู่เหนือหัวครั้งละ</span><span class="v">~4 นาที</span></div>
+    <div><span class="k">จัดตารางลำคลื่นใหม่</span><span class="v">ทุก ~15 วินาที</span></div>
+  </div>`},
+
+{ eyebrow:'ขั้นที่ 8 / 9 · คณิตของแสง', title:'รวมเวลาทั้งเส้นทาง: ทำไม ping เหลือ ~30 ms',
+  cam:{r:145,th:lonTH+0.5,ph:1.15,tgt:'mid'}, vis:{heroes:true,userBeam:true,gwBeam:true,fiber:true,dim:true},
+  labels:['dish','sat','gw','pop'], pulses:['up','down','gw1','gw2','fib1','fib2'],
+  leds:{const:1,link:1,gw:1,laser:0,ho:1},
+  body:`<p>มานับเวลาเป็นมิลลิวินาทีกัน (ขาไปอย่างเดียว): จาน→ดาวเทียม <b class="c">~2 ms</b> · ดาวเทียม→เกตเวย์ <b class="a">~2 ms</b> · ไฟเบอร์ + เราเตอร์ + เซิร์ฟเวอร์ตอบ <b>~5–15 ms</b> — ขากลับใช้เท่ากันอีกชุด รวมเป็น <b class="c">ping 25–50 ms</b></p>
+  <div class="bars">
+    <div class="bar"><div class="lbl"><span>ไฟเบอร์บ้าน</span><b>~5–20 ms</b></div>
+      <div class="track"><div class="fill" style="width:9%;background:#8fe8ff"></div></div></div>
+    <div class="bar"><div class="lbl"><span>Starlink (LEO 550 กม.)</span><b>~25–50 ms</b></div>
+      <div class="track"><div class="fill" style="width:17%;background:var(--cyan)"></div></div></div>
+    <div class="bar"><div class="lbl"><span>ดาวเทียม GEO 35,786 กม.</span><b>~600 ms+</b></div>
+      <div class="track"><div class="fill" style="width:100%;background:var(--geo)"></div></div></div>
+  </div>
+  <p class="note">เคล็ดลับทั้งหมดคือ “ระยะทาง”: แสงวิ่ง 300 กม. ต่อ 1 ms — Starlink ย้ายดาวเทียมลงมาให้ใกล้จนระยะทางไม่ใช่ปัญหา</p>`},
+
+{ eyebrow:'สรุป · ขั้นที่ 9 / 9', title:'ตามแพ็กเก็ตเดินทางครบวงจรใน ~30 ms',
+  cam:{r:165,th:lonTH+0.55,ph:1.12,tgt:'midTH'}, vis:{heroes:true,userBeam:true,gwBeam:true,fiber:true,dim:true},
+  labels:['dish','gw','pop'], pulses:['journey'],
+  leds:{const:1,link:1,gw:1,laser:0,ho:1},
+  body:`<p>รอบสุดท้าย — ตาม<b>จุดแสง</b>ดวงเดียวนี้ไปให้ครบวงจร: ออกจากจานหน้าบ้าน ▸ ขึ้นดาวเทียม ▸ ลงเกตเวย์ ▸ วิ่งไฟเบอร์เข้า PoP/อินเทอร์เน็ต ▸ แล้วย้อนกลับมาหาคุณ ทั้งหมดในเวลาราวหนึ่งกะพริบตาหารร้อย</p>
+  <div class="live" id="legNow">…</div>
+  <p style="margin-top:9px">วงจรแบบนี้เกิดซ้ำ<b>หลายสิบครั้งต่อวินาที</b>ตลอดเวลาที่คุณดูวิดีโอหรือเล่นเกม โดยมีการสลับดาวเทียมทุกไม่กี่นาที มีเลเซอร์ส่งต่อข้ามอวกาศเมื่อจำเป็น และมีดาวเทียมนับหมื่นดวงผลัดกันบินผ่านหัวคุณอย่างเงียบ ๆ</p>
+  <p class="note">MISSION COMPLETE — ลากหมุน ซูม สำรวจต่อได้ตามสบาย หรือกดจุดด้านล่างเพื่อย้อนดูขั้นตอนไหนก็ได้ · <b>SpaceX Starlink</b></p>`},
+];
+
+/* ── Step switching ── */
+const state={step:-1};
+const $=id=>document.getElementById(id);
+const midPos=dishN.clone().multiplyScalar(104);
+const midTH=latLon(16.2,99.7,101);
+
+function setLed(id, on, mode){
+  const el=$(id); if(!el) return;
+  el.classList.remove('on','warn','cyan');
+  if(on) el.classList.add(mode||'on');
+}
+
+function applyStep(i){
+  state.step=i;
+  const s=STEPS[i];
+  $('stepEyebrow').textContent=s.eyebrow;
+  $('stepTitle').textContent=s.title;
+  $('stepBody').innerHTML=s.body;
+  $('stepBody').scrollTop=0;
+  $('prevBtn').disabled=(i===0);
+  $('nextBtn').textContent=(i===STEPS.length-1)?'REPLAY ↺':'NEXT →';
+  [...$('dots').children].forEach((d,j)=>d.classList.toggle('on',j===i));
+  $('panel').classList.remove('collapsed');
+  $('progressFill').style.width = ((i+1)/STEPS.length*100)+'%';
+  $('missionStepLabel').textContent = 'STEP '+String(i+1).padStart(2,'0');
+
+  // LEDs
+  const L=s.leds||{};
+  setLed('ledConst', !!L.const, 'on');
+  setLed('ledLink', !!L.link, 'cyan');
+  setLed('ledGw', !!L.gw, 'on');
+  setLed('ledLaser', !!L.laser, 'on');
+  setLed('ledHandover', !!L.ho, 'cyan');
+
+  goal.r=s.cam.r; goal.ph=s.cam.ph;
+  let th=s.cam.th; while(th-cur.th>Math.PI)th-=Math.PI*2; while(th-cur.th<-Math.PI)th+=Math.PI*2;
+  goal.th=th; cur.th=((cur.th%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+  while(goal.th-cur.th>Math.PI)goal.th-=Math.PI*2; while(goal.th-cur.th<-Math.PI)goal.th+=Math.PI*2;
+  const tg=s.cam.tgt;
+  goal.tgt.copy(tg==='dish'?dishPos: tg==='mid'?midPos: tg==='midTH'?midTH: new THREE.Vector3(tg[0],tg[1],tg[2]));
+  userMoved=(i!==0);
+  const v=s.vis;
+  satMat.opacity=v.dim?0.26:0.9; satMat.size=v.dim?1.3:1.7;
+  geoGroup.visible=!!v.geo; geoBeam.visible=!!v.geoBeam;
+  heroGroup.visible=!!v.heroes;
+  shipSat.visible=!!v.laserScene; laserL1.visible=!!v.laserScene; laserL2.visible=!!v.laserScene;
+  meshLinks.visible=!!v.mesh;
+  userBeam.visible=!!v.userBeam; gwBeam.visible=!!v.gwBeam; fiberLine.visible=!!v.fiber;
+  Object.values(labels).forEach(l=>l.sprite.visible=false);
+  s.labels.forEach(k=>labels[k].sprite.visible=true);
+  Object.entries(pulses).forEach(([k,p])=>p.sp.visible=s.pulses.includes(k));
+}
+
+/* ── UI ── */
+STEPS.forEach((_,i)=>{
+  const d=document.createElement('button'); d.className='dot'; d.ariaLabel='ขั้นที่ '+(i+1);
+  d.onclick=()=>applyStep(i); $('dots').appendChild(d);
+});
+$('nextBtn').onclick=()=>applyStep((state.step+1)%STEPS.length);
+$('prevBtn').onclick=()=>applyStep(Math.max(0,state.step-1));
+$('panelHead').onclick=()=>$('panel').classList.toggle('collapsed');
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')$('nextBtn').click();
+  if(e.key==='ArrowLeft')$('prevBtn').click();
+  if(e.key.toLowerCase()==='p') togglePause();
+  if(e.key.toLowerCase()==='f') $('fsBtn').click();
+});
+
+const pauseBtn = $('pauseBtn');
+const speedSlider = $('speedSlider');
+const speedVal = $('speedVal');
+
+function updateSpeedUI(){
+  const label = timeScale.toFixed(timeScale < 10 ? 1 : 0) + '×';
+  speedVal.textContent = label;
+  speedSlider.value = timeScale;
+  const sr=$('simRateV'); if(sr) sr.textContent = label;
+}
+function setTimeScale(val){
+  timeScale = Math.max(0.5, Math.min(120, parseFloat(val)));
+  updateSpeedUI();
+}
+speedSlider.addEventListener('input', e => setTimeScale(e.target.value));
+
+pauseBtn.addEventListener('click', () => togglePause());
+function togglePause(){
+  isPaused = !isPaused;
+  pauseBtn.textContent = isPaused ? '▶' : '⏸';
+  pauseBtn.classList.toggle('paused', isPaused);
+  const badge=$('liveBadge');
+  if(badge){
+    badge.style.borderColor = isPaused ? 'rgba(255,179,0,.5)' : 'rgba(0,200,83,.45)';
+    badge.style.background = isPaused ? 'rgba(255,179,0,.08)' : 'rgba(0,200,83,.08)';
+    badge.childNodes[badge.childNodes.length-1].textContent = isPaused ? 'HOLD' : 'LIVE';
+    const d=badge.querySelector('.dot-live');
+    if(d){ d.style.background = isPaused ? 'var(--warn)' : 'var(--go)'; d.style.boxShadow = isPaused ? '0 0 8px var(--warn)' : '0 0 8px var(--go)'; }
+  }
+}
+
+document.querySelectorAll('.viewBtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.viewBtn').forEach(b=>b.classList.remove('active-view'));
+    btn.classList.add('active-view');
+    const v = btn.dataset.view;
+    if(v === 'dish'){
+      goal.r = 28; goal.th = lonTH + 0.78; goal.ph = 1.0; goal.tgt.copy(dishPos);
+    } else if(v === 'gw'){
+      goal.r = 95; goal.th = lonTH + 0.35; goal.ph = 1.18; goal.tgt.copy(gwPos);
+    } else if(v === 'ship'){
+      goal.r = 340; goal.th = 93*D2R; goal.ph = 1.32; goal.tgt.set(0,0,0);
+    } else if(v === 'orbit'){
+      goal.r = 520; goal.th = lonTH + 0.4; goal.ph = 0.95; goal.tgt.set(0,0,0);
+    } else if(v === 'reset'){
+      goal.r = 430; goal.th = lonTH + 0.55; goal.ph = 1.15; goal.tgt.set(0,0,0);
+      btn.classList.remove('active-view');
+    }
+    userMoved = true;
+  });
+});
+
+const fsBtn = $('fsBtn');
+fsBtn.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(()=>{});
+  } else {
+    document.exitFullscreen().catch(()=>{});
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  fsBtn.style.opacity = document.fullscreenElement ? '0.6' : '1';
+});
+
+updateSpeedUI();
+setTimeout(()=>$('hint').classList.add('gone'), 7000);
+
+// Live telemetry tickers
+function fmtUTC(){
+  const d=new Date();
+  return d.toISOString().slice(11,19)+' UTC';
+}
+function fmtTPlus(){
+  const s=Math.floor((performance.now()-missionT0)/1000);
+  const m=Math.floor(s/60), r=s%60;
+  return String(m).padStart(2,'0')+':'+String(r).padStart(2,'0');
+}
+setInterval(()=>{
+  const utc=$('utcClock'); if(utc) utc.textContent=fmtUTC();
+  const tp=$('tPlusVal'); if(tp) tp.textContent=fmtTPlus();
+  const tpb=$('tPlusBrand'); if(tpb) tpb.textContent=fmtTPlus();
+}, 250);
+
+setInterval(()=>{
+  const ping = 24 + Math.random()*14 + Math.sin(performance.now()/900)*3;
+  $('pingV').textContent = ping.toFixed(0)+' ms';
+  const pm=$('pingMeter'); if(pm) pm.style.width = Math.min(100, Math.max(20, 100 - (ping-20)*1.8)) + '%';
+  const sig = -48 + Math.random()*6 + Math.sin(performance.now()/1400)*2;
+  const sv=$('sigV'); if(sv) sv.textContent = sig.toFixed(1)+' dB';
+  const sm=$('sigMeter'); if(sm) sm.style.width = Math.min(95, Math.max(35, 70 + (sig+50)*2.5)) + '%';
+}, 480);
+
+/* ── Main loop ── */
+const clock=new THREE.Clock();
+applyStep(0);
+
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),.05);
+
+  if (!isPaused) {
+    simTime += dt * timeScale;
+  }
+
+  updateConstellation(simTime);
+  if(heroGroup.visible) updateHeroes(simTime);
+  if(meshLinks.visible) updateMeshLinks(simTime);
+
+  // Living dish ring pulse
+  if(dishRing){
+    const s = 1 + Math.sin(simTime * 2.2) * 0.08;
+    dishRing.scale.set(s,s,1);
+    dishRing.material.opacity = 0.22 + Math.sin(simTime * 2.2) * 0.12;
+  }
+
+  // Beam opacity pulse when active
+  if(userBeam.visible){
+    userBeam.material.opacity = 0.7 + Math.sin(simTime * 4) * 0.2;
+    userBeam.set2(dishTop, servingPos());
+  }
+  if(gwBeam.visible){
+    gwBeam.material.opacity = 0.65 + Math.sin(simTime * 3.5 + 1) * 0.18;
+    gwBeam.set2(servingPos(), gwTop);
+  }
+  if(laserL1.visible){
+    laserL1.set2(shipTop, shipSat.position);
+    laserL2.set2(shipSat.position, servingPos());
+    laserL2.material.opacity = 0.7 + Math.sin(simTime * 5) * 0.2;
+  }
+
+  if(labels.sat.sprite.visible){
+    const p=servingPos(); labels.sat.sprite.position.copy(p).add(p.clone().normalize().multiplyScalar(4.5));
+  }
+  if(labels.laser.sprite.visible){
+    labels.laser.sprite.position.lerpVectors(shipSat.position, servingPos(), .5)
+      .multiplyScalar(1.06);
+  }
+
+  Object.values(pulses).forEach(p=>p.update(simTime));
+
+  if(state.step===6){
+    const c=$('hoCountEl'), a=$('hoAgoEl');
+    if(c){ c.textContent=hoCount; a.textContent=(simTime-hoLastT).toFixed(0); }
+  }
+  if(state.step===8){ const el=$('legNow'); if(el && legText) el.textContent='📡 '+legText; }
+
+  // Slow cinematic orbit on overview (step 0) — keeps beams aligned
+  if(state.step===0 && !userMoved && !isPaused) goal.th+=dt*0.032;
+
+  updateCamera(dt);
+  renderer.render(scene,camera);
+}
+loop();
+</script>
+</body>
+</html>

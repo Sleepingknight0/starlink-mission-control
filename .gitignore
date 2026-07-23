@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Generated / local tooling
+output/
+.playwright-cli/
+.vercel/
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+*.swp
+
+# Temp
+_tmp*
+*.tmp

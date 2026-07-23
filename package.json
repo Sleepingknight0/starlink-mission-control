@@ -1,0 +1,16 @@
+{
+  "name": "starlink-mission-control",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static Starlink 3D explainer — Guide + Simulation",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "python -m http.server 8000",
+    "check": "node scripts/final-check.mjs"
+  },
+  "keywords": ["starlink", "threejs", "spacex", "3d"],
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
+}
