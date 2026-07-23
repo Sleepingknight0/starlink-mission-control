@@ -1,0 +1,14 @@
+node_modules
+output
+.playwright-cli
+.git
+.claude
+*.log
+.env*
+package-lock.json
+scripts
+docs
+design-system
+AGENTS.md
+CLAUDE.md
+starlink-3d-v1 (1).html
